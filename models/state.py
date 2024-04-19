@@ -7,7 +7,7 @@ from sqlalchemy import Column, Integer, String
 import models
 from models.city import City
 import shlex
-
+import os
 
 class State(BaseModel, Base):
     """This is the class for State
@@ -19,17 +19,30 @@ class State(BaseModel, Base):
     cities = relationship("City", cascade='all, delete, delete-orphan',
                           backref="state")
 
-    @property
-    def cities(self):
-        var = models.storage.all()
-        lista = []
-        result = []
-        for key in var:
-            city = key.replace('.', ' ')
-            city = shlex.split(city)
-            if (city[0] == 'City'):
-                lista.append(var[key])
-        for elem in lista:
-            if (elem.state_id == self.id):
-                result.append(elem)
-        return (result)
+    if os.getenv('HBNB_TYPE_STORAGE') != 'db':
+        @property
+        def cities(self):
+            """Getter method to return the list of City objects linked to the current State"""
+            from models import storage
+            cities_list = []
+            for city in storage.all(City).values():
+                if city.state_id == self.id:
+                    cities_list.append(city)
+            return cities_list
+    else:
+        @property
+        def cities(self):
+            """Getter method to return the list of City objects linked to the current State"""
+            from models import storage
+            var = storage.all()
+            lista = []
+            result = []
+            for key in var:
+                city = key.replace('.', ' ')
+                city = shlex.split(city)
+                if city[0] == 'City':
+                    lista.append(var[key])
+            for elem in lista:
+                if elem.state_id == self.id:
+                    result.append(elem)
+            return result
